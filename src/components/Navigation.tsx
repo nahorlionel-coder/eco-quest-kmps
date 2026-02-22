@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, Trophy, QrCode, Gift, Menu, X, Leaf } from 'lucide-react';
+import { Home, Target, Trophy, QrCode, Gift, Menu, X, Leaf, UserCircle, LogIn } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { cn } from '@/lib/utils';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface NavigationProps {
   activeTab: string;
@@ -96,6 +99,9 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 }
 
 export function Header() {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+
   return (
     <motion.header
       initial={{ y: -50, opacity: 0 }}
@@ -117,6 +123,32 @@ export function Header() {
               <p className="text-xs text-muted-foreground">Gamifikasi Peduli Lingkungan</p>
             </div>
           </div>
+
+          {user ? (
+            <motion.button
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => navigate('/profile')}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+            >
+              <Avatar className="w-8 h-8">
+                {user.user_metadata?.avatar_url ? (
+                  <AvatarImage src={user.user_metadata.avatar_url} />
+                ) : null}
+                <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                  {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase() || '?'}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-sm font-medium hidden sm:inline">
+                {user.user_metadata?.full_name || user.email?.split('@')[0]}
+              </span>
+            </motion.button>
+          ) : (
+            <Button variant="glow" size="sm" onClick={() => navigate('/auth')}>
+              <LogIn className="w-4 h-4 mr-2" />
+              Masuk
+            </Button>
+          )}
         </div>
       </div>
     </motion.header>
