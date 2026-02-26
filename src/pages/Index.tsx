@@ -6,6 +6,7 @@ import { DailyMissions } from '@/components/DailyMissions';
 import { Leaderboard } from '@/components/Leaderboard';
 import { QRScanner } from '@/components/QRScanner';
 import { Marketplace } from '@/components/Marketplace';
+import { OnboardingGuide, useOnboarding } from '@/components/OnboardingGuide';
 import ecoPattern from '@/assets/eco-pattern.png';
 
 const pageVariants = {
@@ -16,6 +17,7 @@ const pageVariants = {
 
 const Index = () => {
   const [activeTab, setActiveTab] = useState('dashboard');
+  const { showOnboarding, completeOnboarding } = useOnboarding();
 
   const renderContent = () => {
     switch (activeTab) {
@@ -36,6 +38,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
+      {/* Onboarding Guide */}
+      <AnimatePresence>
+        {showOnboarding && <OnboardingGuide onComplete={completeOnboarding} />}
+      </AnimatePresence>
+
       {/* Background Pattern */}
       <div
         className="fixed inset-0 opacity-5 pointer-events-none"
