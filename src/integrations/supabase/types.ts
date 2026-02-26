@@ -63,7 +63,11 @@ export type Database = {
           description: string
           icon: string
           id: string
+          is_sponsored: boolean
           points: number
+          redirect_url: string | null
+          sort_order: number
+          sponsor_name: string | null
           title: string
           type: string
         }
@@ -74,7 +78,11 @@ export type Database = {
           description: string
           icon?: string
           id?: string
+          is_sponsored?: boolean
           points?: number
+          redirect_url?: string | null
+          sort_order?: number
+          sponsor_name?: string | null
           title: string
           type: string
         }
@@ -85,7 +93,11 @@ export type Database = {
           description?: string
           icon?: string
           id?: string
+          is_sponsored?: boolean
           points?: number
+          redirect_url?: string | null
+          sort_order?: number
+          sponsor_name?: string | null
           title?: string
           type?: string
         }
