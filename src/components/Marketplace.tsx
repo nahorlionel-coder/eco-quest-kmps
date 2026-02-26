@@ -1,10 +1,13 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ShoppingBag, Gift, Coffee, Clock, TreePine, CheckCircle } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { rewards, currentUser, type Reward } from '@/data/mockData';
+import { rewards, type Reward } from '@/data/mockData';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 
 const categoryIcons: Record<string, typeof Coffee> = {
   'Food & Drink': Coffee,
@@ -35,7 +38,6 @@ function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
         className={`h-full overflow-hidden ${!reward.available || !canAfford ? 'opacity-60' : ''}`}
       >
         <CardContent className="p-4 flex flex-col h-full">
-          {/* Image/Icon */}
           <div className="relative mb-4">
             <motion.div
               className="text-6xl text-center py-6 rounded-xl bg-gradient-to-br from-muted to-muted/50"
@@ -51,7 +53,6 @@ function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
             )}
           </div>
 
-          {/* Content */}
           <div className="flex-1">
             <div className="flex items-start justify-between gap-2 mb-2">
               <h3 className="font-bold font-display leading-tight">{reward.title}</h3>
@@ -65,7 +66,6 @@ function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
             </p>
           </div>
 
-          {/* Footer */}
           <div className="mt-4 pt-4 border-t border-border/50">
             <div className="flex items-center justify-between">
               <div>
@@ -91,25 +91,53 @@ function RewardCard({ reward, userPoints, onRedeem }: RewardCardProps) {
 }
 
 export function Marketplace() {
-  const [userPoints, setUserPoints] = useState(currentUser.points);
+  const { user } = useAuth();
+  const [userPoints, setUserPoints] = useState(0);
   const [redeemedItems, setRedeemedItems] = useState<string[]>([]);
   const [showSuccess, setShowSuccess] = useState<Reward | null>(null);
 
-  const handleRedeem = (id: string) => {
+  useEffect(() => {
+    const fetchPoints = async () => {
+      if (!user) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('points')
+        .eq('user_id', user.id)
+        .single();
+      if (data) setUserPoints(data.points);
+    };
+    fetchPoints();
+  }, [user]);
+
+  const handleRedeem = async (id: string) => {
     const reward = rewards.find(r => r.id === id);
-    if (reward && userPoints >= reward.pointsCost) {
-      setUserPoints(prev => prev - reward.pointsCost);
-      setRedeemedItems(prev => [...prev, id]);
-      setShowSuccess(reward);
-      setTimeout(() => setShowSuccess(null), 3000);
+    if (!reward || userPoints < reward.pointsCost) return;
+    if (!user) {
+      toast.error('Silakan login terlebih dahulu');
+      return;
     }
+
+    // Deduct points in DB
+    const { error } = await supabase
+      .from('profiles')
+      .update({ points: userPoints - reward.pointsCost })
+      .eq('user_id', user.id);
+
+    if (error) {
+      toast.error('Gagal menukar hadiah');
+      return;
+    }
+
+    setUserPoints(prev => prev - reward.pointsCost);
+    setRedeemedItems(prev => [...prev, id]);
+    setShowSuccess(reward);
+    setTimeout(() => setShowSuccess(null), 3000);
   };
 
   const categories = [...new Set(rewards.map(r => r.category))];
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <motion.div
         initial={{ opacity: 0, x: -20 }}
         animate={{ opacity: 1, x: 0 }}
@@ -124,7 +152,6 @@ export function Marketplace() {
         </Badge>
       </motion.div>
 
-      {/* Success Toast */}
       <AnimatePresence>
         {showSuccess && (
           <motion.div
@@ -146,7 +173,6 @@ export function Marketplace() {
         )}
       </AnimatePresence>
 
-      {/* Categories */}
       {categories.map((category, catIndex) => (
         <motion.div
           key={category}
@@ -184,6 +210,3 @@ export function Marketplace() {
     </div>
   );
 }
-
-// Need to import React for React.createElement
-import React from 'react';
