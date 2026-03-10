@@ -30,6 +30,10 @@ const Index = () => {
         return <DailyMissions />;
       case 'challenges':
         return <DepartmentChallenges />;
+      case 'impact':
+        return <ImpactDashboard />;
+      case 'carbon':
+        return <CarbonCalculator />;
       case 'leaderboard':
         return <Leaderboard />;
       case 'scanner':

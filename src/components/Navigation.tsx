@@ -16,6 +16,8 @@ const navItems = [
   { id: 'dashboard', label: 'Beranda', icon: Home },
   { id: 'missions', label: 'Misi', icon: Target },
   { id: 'challenges', label: 'Battle', icon: Swords },
+  { id: 'impact', label: 'Dampak', icon: BarChart3 },
+  { id: 'carbon', label: 'Karbon', icon: Calculator },
   { id: 'leaderboard', label: 'Ranking', icon: Trophy },
   { id: 'scanner', label: 'Scan', icon: QrCode },
   { id: 'marketplace', label: 'Hadiah', icon: Gift },
