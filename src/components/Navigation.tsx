@@ -29,7 +29,7 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
       <motion.aside
         initial={{ x: -100, opacity: 0 }}
         animate={{ x: 0, opacity: 1 }}
-        className="hidden lg:flex fixed left-0 top-0 h-full w-20 flex-col items-center py-8 bg-card/50 backdrop-blur-xl border-r border-white/10 z-50"
+        className="hidden lg:flex fixed left-0 top-0 h-full w-20 flex-col items-center py-8 bg-card/50 backdrop-blur-xl border-r border-border z-50"
       >
         {/* Logo */}
         <motion.div
