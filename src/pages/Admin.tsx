@@ -448,6 +448,11 @@ export default function Admin() {
             </Card>
           </TabsContent>
 
+          {/* ═══ Verification Tab ═══ */}
+          <TabsContent value="verification">
+            <PhotoVerification onRefresh={fetchAll} />
+          </TabsContent>
+
           {/* ═══ Battles Tab ═══ */}
           <TabsContent value="battles">
             <div className="flex justify-between items-center mb-4">
