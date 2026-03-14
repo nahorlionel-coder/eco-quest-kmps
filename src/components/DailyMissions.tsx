@@ -34,7 +34,7 @@ function MissionCard({ mission, onClaim }: MissionCardProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleClaim = async (file?: File) => {
-    if (mission.completed || claiming) return;
+    if (mission.completed || mission.pending || claiming) return;
     setClaiming(true);
     setIsClaimingAnimation(true);
     
