@@ -17,8 +17,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
   LayoutDashboard, Target, Swords, Gift, Users,
-  Plus, Pencil, Trash2, ArrowLeft, Search, RefreshCw
+  Plus, Pencil, Trash2, ArrowLeft, Search, RefreshCw, Camera
 } from 'lucide-react';
+import { PhotoVerification } from '@/components/admin/PhotoVerification';
 
 // ─── Types ───
 interface Mission {
