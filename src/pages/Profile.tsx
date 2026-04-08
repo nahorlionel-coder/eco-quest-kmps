@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Edit2, Save, LogOut, Trophy, Flame, Star, Zap } from 'lucide-react';
+import { ArrowLeft, Edit2, Save, LogOut, Trophy, Flame, Star, Zap, ScrollText, Target, ArrowRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { getXPProgress, getPlayerTitle } from '@/lib/xp';
 
 interface Profile {
   display_name: string | null;
@@ -29,6 +30,7 @@ const Profile = () => {
   const [displayName, setDisplayName] = useState('');
   const [department, setDepartment] = useState('');
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'profile' | 'missions'>('profile');
 
   useEffect(() => {
     if (!user) {
@@ -90,6 +92,9 @@ const Profile = () => {
     { icon: Star, label: 'Level', value: profile?.level || 1, color: 'text-secondary' },
     { icon: Flame, label: 'Streak', value: `${profile?.streak || 0} hari`, color: 'text-accent' },
   ];
+
+  const xp = getXPProgress(profile?.points || 0);
+  const playerTitle = getPlayerTitle(xp.level);
 
   return (
     <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
@@ -166,47 +171,69 @@ const Profile = () => {
           ))}
         </motion.div>
 
-        {/* Edit Profile */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.3 }}
+        {/* Title Card */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card variant="glass" className="mb-4 border-primary/20 bg-gradient-to-br from-primary/10 to-secondary/5">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-3">
+                <span className="text-4xl">{playerTitle.emoji}</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold font-display text-lg text-primary">{playerTitle.title}</h3>
+                    <Badge variant="outline" className="text-xs border-primary/30 text-primary">Lv.{xp.level}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{playerTitle.description}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+
+        {/* Tabs */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}
+          className="flex gap-2 p-1 bg-muted/40 rounded-xl mb-4"
         >
+          <button onClick={() => setActiveTab('profile')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'profile' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Edit2 className="w-4 h-4" /> Edit Profil
+          </button>
+          <button onClick={() => setActiveTab('missions')}
+            className={`flex-1 flex items-center justify-center gap-2 py-2 px-3 rounded-lg text-sm font-semibold transition-all ${
+              activeTab === 'missions' ? 'bg-card shadow text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <ScrollText className="w-4 h-4" /> Your Mission
+          </button>
+        </motion.div>
+
+        {activeTab === 'profile' && (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card variant="glass">
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle className="text-lg">Edit Profil</CardTitle>
               {!editing ? (
                 <Button variant="outline" size="sm" onClick={() => setEditing(true)}>
-                  <Edit2 className="w-4 h-4 mr-2" />
-                  Edit
+                  <Edit2 className="w-4 h-4 mr-2" />Edit
                 </Button>
               ) : (
                 <Button variant="glow" size="sm" onClick={handleSave}>
-                  <Save className="w-4 h-4 mr-2" />
-                  Simpan
+                  <Save className="w-4 h-4 mr-2" />Simpan
                 </Button>
               )}
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-1.5">
                 <Label>Nama</Label>
-                <Input
-                  value={displayName}
-                  onChange={(e) => setDisplayName(e.target.value)}
-                  disabled={!editing}
-                  className="bg-muted/50 border-white/10"
-                  placeholder="Nama kamu"
-                />
+                <Input value={displayName} onChange={(e) => setDisplayName(e.target.value)}
+                  disabled={!editing} className="bg-muted/50 border-white/10" placeholder="Nama kamu" />
               </div>
               <div className="space-y-1.5">
                 <Label>Departemen</Label>
-                <Input
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                  disabled={!editing}
-                  className="bg-muted/50 border-white/10"
-                  placeholder="Engineering, Marketing, dll."
-                />
+                <Input value={department} onChange={(e) => setDepartment(e.target.value)}
+                  disabled={!editing} className="bg-muted/50 border-white/10" placeholder="Engineering, Marketing, dll." />
               </div>
               <div className="space-y-1.5">
                 <Label>Email</Label>
@@ -215,6 +242,32 @@ const Profile = () => {
             </CardContent>
           </Card>
         </motion.div>
+        )}
+
+        {activeTab === 'missions' && (
+          <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+            <Card variant="glass" className="p-6">
+              <div className="text-center space-y-4">
+                <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-600 to-pink-600 rounded-full flex items-center justify-center">
+                  <Target className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold font-display mb-2">Your Mission Awaits!</h3>
+                  <p className="text-muted-foreground text-sm mb-4">
+                    Complete your weekly missions and earn points. Upload photos as proof and track your progress.
+                  </p>
+                </div>
+                <Button 
+                  onClick={() => navigate('/your-mission')}
+                  className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
+                >
+                  Go to Your Mission
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+              </div>
+            </Card>
+          </motion.div>
+        )}
       </div>
     </div>
   );

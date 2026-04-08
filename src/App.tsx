@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import AdminSetup from "./pages/AdminSetup";
+import YourMission from "./pages/YourMission";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,8 +25,9 @@ const App = () => (
             <Route path="/" element={<Index />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/profile" element={<Profile />} />
+            <Route path="/your-mission" element={<YourMission />} />
             <Route path="/admin" element={<Admin />} />
-            <Route path="/admin/setup" element={<AdminSetup />} />
+            <Route path="/admin-setup" element={<AdminSetup />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>

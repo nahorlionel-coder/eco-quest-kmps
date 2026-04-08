@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 /* EcoQuest Gen-Z Design System */
-@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap');
 
 @layer base {
   :root {
@@ -237,6 +237,10 @@
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .font-pixel {
+    font-family: 'Press Start 2P', monospace;
   }
 
   .bg-gradient-primary {

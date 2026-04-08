@@ -9,6 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { supabase } from '@/integrations/supabase/client';
 import { lovable } from '@/integrations/lovable';
 import { useAuth } from '@/contexts/AuthContext';
+import { FloatingMissionIcon } from '@/components/FloatingMissionIcon';
 import { toast } from 'sonner';
 
 const Auth = () => {
@@ -194,6 +195,9 @@ const Auth = () => {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Floating Mission Icon */}
+      <FloatingMissionIcon />
     </div>
   );
 };

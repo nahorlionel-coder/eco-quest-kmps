@@ -1,153 +1,114 @@
 import { useState, useRef } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
-import { Check, Camera, QrCode, Zap, Recycle, Bike, Salad, Sparkles, Upload, Loader2, ExternalLink, Star } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Check, Upload, Loader2, Clock, Info } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useAuth } from '@/contexts/AuthContext';
-import { useMissions, type MissionWithStatus } from '@/hooks/useMissions';
 import { useNavigate } from 'react-router-dom';
+import { dailyMissions, weeklySchedule } from '@/data/mockData';
+import type { Mission } from '@/data/mockData';
 
-const categoryConfig = {
-  energy: { icon: Zap, bg: 'bg-energy/20', text: 'text-energy' },
-  waste: { icon: Recycle, bg: 'bg-waste/20', text: 'text-waste' },
-  commute: { icon: Bike, bg: 'bg-commute/20', text: 'text-commute' },
-  food: { icon: Salad, bg: 'bg-food/20', text: 'text-food' },
-};
+const categoryBg = { energy: 'bg-energy/20', waste: 'bg-waste/20', commute: 'bg-commute/20', food: 'bg-food/20' };
+const difficultyColor = { easy: 'text-green-400', medium: 'text-yellow-400', hard: 'text-red-400' };
+const difficultyLabel = { easy: 'Easy', medium: 'Medium', hard: 'Hard' };
 
-const typeIcons = {
-  'check-in': Check,
-  'photo': Camera,
-  'qr': QrCode,
-};
+function getWeekOfMonth(): number {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const firstDayOfWeek = firstDay.getDay(); // 0=Sunday, 1=Monday, ..., 6=Saturday
 
-interface MissionCardProps {
-  mission: MissionWithStatus;
-  onClaim: (id: string, photoFile?: File) => Promise<void>;
+  const adjustedFirstDay = firstDayOfWeek === 0 ? 6 : firstDayOfWeek - 1;
+
+  const currentDate = now.getDate();
+  const weekNumber = Math.ceil((currentDate + adjustedFirstDay) / 7);
+  
+  return Math.min(weekNumber, 4); // Cap at week 4
 }
 
-function MissionCard({ mission, onClaim }: MissionCardProps) {
-  const category = categoryConfig[mission.category];
-  const TypeIcon = typeIcons[mission.type];
-  const [isClaimingAnimation, setIsClaimingAnimation] = useState(false);
-  const [claiming, setClaiming] = useState(false);
+function getHoursLeft(): number {
+  const now = new Date();
+  const day = now.getDay();
+  const daysUntilFriday = day <= 5 ? 5 - day : 0;
+  const friday = new Date(now);
+  friday.setDate(now.getDate() + daysUntilFriday);
+  friday.setHours(23, 59, 0, 0);
+  return Math.max(0, (friday.getTime() - now.getTime()) / (1000 * 60 * 60));
+}
+
+type MissionStatus = 'available' | 'pending' | 'approved';
+
+function MissionCard({ mission, onUpload }: { mission: Mission; onUpload: (id: string, file: File) => void }) {
+  const [status, setStatus] = useState<MissionStatus>(mission.completed ? 'approved' : 'available');
+  const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-
-  const handleClaim = async (file?: File) => {
-    if (mission.completed || mission.pending || claiming) return;
-    setClaiming(true);
-    setIsClaimingAnimation(true);
-    
-    await onClaim(mission.id, file);
-    
-    setTimeout(() => {
-      setIsClaimingAnimation(false);
-      setClaiming(false);
-    }, 600);
-  };
-
-  const handlePhotoClick = () => {
-    fileInputRef.current?.click();
-  };
+  const hoursLeft = getHoursLeft();
+  const timeBonus = Math.round(hoursLeft * 0.1);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleClaim(file);
+    if (!file) return;
+    setUploading(true);
+    onUpload(mission.id, file);
+    setTimeout(() => { setUploading(false); setStatus('pending'); }, 800);
   };
-
-  const isSponsored = mission.is_sponsored;
 
   return (
     <motion.div layout initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, scale: 0.9 }} whileHover={{ scale: mission.completed ? 1 : 1.02 }}
-      className="relative"
+      whileHover={{ scale: status === 'available' ? 1.02 : 1 }} className="relative"
     >
-      <Card variant={mission.completed ? 'glass' : mission.pending ? 'glass' : 'mission'}
-        className={`overflow-hidden ${mission.completed || mission.pending ? 'opacity-60' : ''} ${isSponsored ? 'ring-2 ring-amber-400/60 shadow-lg shadow-amber-400/10' : ''}`}
+      <Card variant={status !== 'available' ? 'glass' : 'mission'}
+        className={`overflow-hidden ${status !== 'available' ? 'opacity-70' : ''}`}
       >
-        {isSponsored && (
-          <div className="absolute top-0 right-0 z-20">
-            <div className="bg-gradient-to-l from-amber-500 to-amber-400 text-white text-[10px] font-bold px-3 py-1 rounded-bl-lg flex items-center gap-1">
-              <Star className="w-3 h-3 fill-white" />
-              SPONSORED
-            </div>
-          </div>
-        )}
-        {isClaimingAnimation && (
-          <motion.div initial={{ scale: 0, opacity: 1 }} animate={{ scale: 20, opacity: 0 }}
-            transition={{ duration: 0.6 }}
-            className="absolute inset-0 bg-primary rounded-full z-10"
-            style={{ transformOrigin: 'center' }}
-          />
-        )}
         <CardContent className="p-4">
           <div className="flex items-start gap-4">
-            <motion.div className={`p-3 rounded-xl ${isSponsored ? 'bg-amber-100 dark:bg-amber-900/30' : category.bg} shrink-0`}
-              animate={mission.completed ? {} : { scale: [1, 1.05, 1] }}
-              transition={{ duration: 2, repeat: Infinity }}
-            >
+            <div className={`p-3 rounded-xl ${categoryBg[mission.category]} shrink-0`}>
               <span className="text-2xl">{mission.icon}</span>
-            </motion.div>
+            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <h3 className="font-bold font-display truncate">{mission.title}</h3>
-                <Badge variant={mission.category} className="shrink-0">
-                  <TypeIcon className="w-3 h-3 mr-1" />
-                  {mission.type === 'check-in' ? 'Check-in' : mission.type === 'photo' ? 'Foto' : 'QR'}
-                </Badge>
+                <span className={`text-xs font-semibold ${difficultyColor[mission.difficulty]}`}>
+                  {difficultyLabel[mission.difficulty]}
+                </span>
               </div>
               <p className="text-sm text-muted-foreground line-clamp-2">{mission.description}</p>
-              {isSponsored && mission.sponsor_name && (
-                <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 mt-1">
-                  🤝 {mission.sponsor_name}
-                </p>
+              {status === 'available' && timeBonus > 0 && (
+                <p className="text-xs text-cyan-400 mt-1 font-semibold">⚡ +{timeBonus} time bonus if done now</p>
+              )}
+              {status === 'pending' && (
+                <p className="text-xs text-amber-400 mt-1 font-semibold">⏳ Waiting for admin verification (every Wednesday)</p>
               )}
             </div>
             <div className="flex flex-col items-end gap-2 shrink-0">
-              <Badge variant="points" className="font-bold">+{mission.points}</Badge>
-              {mission.completed ? (
+              <Badge variant="points" className="font-bold">
+                +{status === 'approved' ? mission.points : mission.points + timeBonus}
+              </Badge>
+              {status === 'approved' && (
                 <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
                   className="flex items-center gap-1 text-primary"
                 >
                   <Check className="w-5 h-5" />
-                  <span className="text-sm font-semibold">Selesai</span>
+                  <span className="text-sm font-semibold">Done</span>
                 </motion.div>
-              ) : mission.pending ? (
-                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }}
-                  className="flex items-center gap-1 text-amber-500"
-                >
+              )}
+              {status === 'pending' && (
+                <div className="flex items-center gap-1 text-amber-400 text-xs">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span className="text-sm font-semibold">Pending</span>
-                </motion.div>
-              ) : mission.redirect_url ? (
-                <Button size="sm" variant="default"
-                  className="gap-1 bg-amber-500 hover:bg-amber-600 text-white"
-                  onClick={() => window.open(mission.redirect_url!, '_blank')}
-                >
-                  <ExternalLink className="w-4 h-4" />
-                  Buka
-                </Button>
-              ) : mission.type === 'photo' ? (
+                  <span className="font-semibold">Pending</span>
+                </div>
+              )}
+              {status === 'available' && (
                 <>
                   <input ref={fileInputRef} type="file" accept="image/*" capture="environment"
                     className="hidden" onChange={handleFileChange} />
-                  <Button size="sm" variant={mission.category === 'food' ? 'food' : 'default'}
-                    onClick={handlePhotoClick} disabled={claiming} className="gap-1"
+                  <Button size="sm" variant={mission.category === 'food' ? 'food' : mission.category === 'energy' ? 'energy' : mission.category === 'commute' ? 'commute' : 'default'}
+                    onClick={() => fileInputRef.current?.click()} disabled={uploading} className="gap-1"
                   >
-                    {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
+                    {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
                     Upload
                   </Button>
                 </>
-              ) : (
-                <Button size="sm"
-                  variant={mission.category === 'energy' ? 'energy' : 
-                           mission.category === 'commute' ? 'commute' : 
-                           mission.category === 'food' ? 'food' : 'default'}
-                  onClick={() => handleClaim()} disabled={claiming} className="gap-1"
-                >
-                  {claiming ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}
-                  Klaim
-                </Button>
               )}
             </div>
           </div>
@@ -160,58 +121,75 @@ function MissionCard({ mission, onClaim }: MissionCardProps) {
 export function DailyMissions() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { missions, loading, completeMission } = useMissions();
-  const completedCount = missions.filter(m => m.completed).length;
-  const totalPoints = missions.reduce((acc, m) => acc + (m.completed ? m.points : 0), 0);
 
-  const handleClaim = async (id: string, photoFile?: File) => {
-    if (!user) {
-      navigate('/auth');
-      return;
-    }
-    await completeMission(id, { photoFile });
+  const weekNum = getWeekOfMonth();
+  const scheduledIds = weeklySchedule[weekNum];
+  const weekMissions = dailyMissions.filter(m => scheduledIds.includes(m.id));
+  const hoursLeft = getHoursLeft();
+  const isWeekday = [1, 2, 3, 4, 5].includes(new Date().getDay());
+
+  const handleUpload = (id: string, file: File) => {
+    if (!user) { navigate('/auth'); return; }
+    console.log('upload mock', id, file.name);
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-8 h-8 animate-spin text-primary" />
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
+      {/* Header */}
       <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}
         className="flex items-center justify-between"
       >
         <div>
           <h2 className="text-2xl font-bold font-display flex items-center gap-2">
-            <span className="text-3xl">🎯</span> Misi Harian
+            <span className="text-3xl">🎯</span> Week {weekNum} Missions
           </h2>
           <p className="text-muted-foreground text-sm mt-1">
-            {user ? 'Selesaikan misi untuk mendapat poin!' : 'Login untuk menyelesaikan misi'}
+            {user ? 'Upload photo as proof to complete missions' : 'Login to complete missions'}
           </p>
         </div>
         <div className="text-right">
-          <div className="text-lg font-bold font-display text-primary">
-            {completedCount}/{missions.length}
-          </div>
-          <div className="text-xs text-muted-foreground">+{totalPoints} pts hari ini</div>
+          <div className="text-lg font-bold font-display text-primary">{weekMissions.filter(m => m.completed).length}/{weekMissions.length}</div>
+          <div className="text-xs text-muted-foreground">completed</div>
         </div>
       </motion.div>
 
-      <AnimatePresence mode="popLayout">
-        <div className="space-y-3">
-          {missions.map((mission, index) => (
-            <motion.div key={mission.id} initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
-            >
-              <MissionCard mission={mission} onClaim={handleClaim} />
-            </motion.div>
-          ))}
+      {/* Not weekday warning */}
+      {!isWeekday && (
+        <div className="rounded-xl border border-red-400/30 bg-red-500/10 p-3 flex items-center gap-2">
+          <Info className="w-4 h-4 text-red-400 shrink-0" />
+          <p className="text-xs text-red-400 font-semibold">Missions are only available on weekdays (Mon–Fri)</p>
         </div>
-      </AnimatePresence>
+      )}
+
+      {/* Time banner */}
+      <div className="rounded-xl border border-cyan-400/30 bg-gradient-to-r from-cyan-500/10 to-blue-500/10 p-3 space-y-2">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2 text-sm font-semibold text-cyan-400">
+            <Clock className="w-4 h-4" />
+            {hoursLeft > 0 ? `${hoursLeft.toFixed(1)} hrs left this week` : 'Week ended!'}
+          </div>
+          <span className="text-xs text-muted-foreground">Mon 00:00 → Fri 23:59</span>
+        </div>
+        <div className="w-full bg-muted/50 rounded-full h-1.5">
+          <div className="bg-gradient-to-r from-cyan-500 to-blue-400 h-1.5 rounded-full transition-all"
+            style={{ width: `${Math.max(0, (hoursLeft / 120) * 100)}%` }}
+          />
+        </div>
+        <p className="text-xs text-muted-foreground">
+          ⚡ Time bonus = sisa jam × 0.1 pts &nbsp;|&nbsp; ✅ Admin verifies every Wednesday
+        </p>
+      </div>
+
+      {/* Mission list */}
+      <div className="space-y-3">
+        {weekMissions.map((mission, index) => (
+          <motion.div key={mission.id} initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.05 }}
+          >
+            <MissionCard mission={mission} onUpload={handleUpload} />
+          </motion.div>
+        ))}
+      </div>
     </div>
   );
 }

@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { BarChart3, Calculator, ArrowRight } from 'lucide-react';
 import { Navigation, Header } from '@/components/Navigation';
 import { StatsOverview } from '@/components/StatsOverview';
 import { DailyMissions } from '@/components/DailyMissions';
+import MissionBoard from '@/components/MissionBoard';
 import { Leaderboard } from '@/components/Leaderboard';
 import { QRScanner } from '@/components/QRScanner';
 import { Marketplace } from '@/components/Marketplace';
@@ -11,6 +11,7 @@ import { DepartmentChallenges } from '@/components/DepartmentChallenges';
 import { ImpactDashboard } from '@/components/ImpactDashboard';
 import { CarbonCalculator } from '@/components/CarbonCalculator';
 import { OnboardingGuide, useOnboarding } from '@/components/OnboardingGuide';
+import { FloatingMissionIcon } from '@/components/FloatingMissionIcon';
 import ecoPattern from '@/assets/eco-pattern.png';
 
 const pageVariants = {
@@ -45,8 +46,6 @@ const Index = () => {
         return <StatsOverview />;
     }
   };
-
-  const showFeatureBanner = !['impact', 'carbon'].includes(activeTab);
 
   return (
     <div className="min-h-screen bg-gradient-hero relative overflow-hidden">
@@ -92,65 +91,11 @@ const Index = () => {
             </motion.div>
           </AnimatePresence>
 
-          {/* Feature Banner - Impact & Carbon (below content) */}
-          {showFeatureBanner && (
-            <div className="max-w-2xl mx-auto mt-8">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3 px-1">🌱 Jelajahi Fitur Lainnya</h3>
-              <div className="grid grid-cols-2 gap-3">
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveTab('impact')}
-                  className="relative group overflow-hidden rounded-2xl p-4 text-left border border-primary/20 bg-gradient-to-br from-primary/15 via-card/80 to-food/10 backdrop-blur-xl shadow-glow-sm hover:shadow-glow-md transition-all duration-300"
-                >
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-primary/10 rounded-full blur-2xl group-hover:bg-primary/20 transition-colors" />
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-2 rounded-xl bg-primary/20">
-                        <BarChart3 className="w-5 h-5 text-primary" />
-                      </div>
-                      <span className="text-lg">🌍</span>
-                    </div>
-                    <h3 className="font-bold font-display text-sm">Impact Dashboard</h3>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Lihat dampak nyatamu untuk bumi</p>
-                    <div className="flex items-center gap-1 mt-2 text-[11px] text-primary font-semibold">
-                      Lihat <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </motion.button>
-
-                <motion.button
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.4 }}
-                  whileHover={{ scale: 1.03, y: -2 }}
-                  whileTap={{ scale: 0.97 }}
-                  onClick={() => setActiveTab('carbon')}
-                  className="relative group overflow-hidden rounded-2xl p-4 text-left border border-accent/20 bg-gradient-to-br from-accent/15 via-card/80 to-energy/10 backdrop-blur-xl shadow-glow-sm hover:shadow-glow-md transition-all duration-300"
-                >
-                  <div className="absolute top-0 right-0 w-20 h-20 bg-accent/10 rounded-full blur-2xl group-hover:bg-accent/20 transition-colors" />
-                  <div className="relative">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="p-2 rounded-xl bg-accent/20">
-                        <Calculator className="w-5 h-5 text-accent" />
-                      </div>
-                      <span className="text-lg">🧮</span>
-                    </div>
-                    <h3 className="font-bold font-display text-sm">Carbon Calculator</h3>
-                    <p className="text-[11px] text-muted-foreground mt-1 leading-tight">Hitung jejak karbonmu sekarang</p>
-                    <div className="flex items-center gap-1 mt-2 text-[11px] text-accent font-semibold">
-                      Hitung <ArrowRight className="w-3 h-3 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </div>
-                </motion.button>
-              </div>
-            </div>
-          )}
+          {/* Feature Banner removed */}
         </main>
       </div>
+
+      {activeTab !== 'missions' && <FloatingMissionIcon />}
     </div>
   );
 };

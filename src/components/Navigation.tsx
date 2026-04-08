@@ -1,28 +1,29 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, Trophy, QrCode, Gift, Menu, X, Leaf, UserCircle, LogIn, Swords } from 'lucide-react';
+import { Home, Target, Trophy, Camera, Gift, Menu, X, Leaf, UserCircle, LogIn, Swords, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 
 interface NavigationProps {
   activeTab: string;
   onTabChange: (tab: string) => void;
 }
 
-const navItems = [
-  { id: 'dashboard', label: 'Beranda', icon: Home },
-  { id: 'missions', label: 'Misi', icon: Target },
-  { id: 'challenges', label: 'Battle', icon: Swords },
-  { id: 'leaderboard', label: 'Ranking', icon: Trophy },
-  { id: 'scanner', label: 'Scan', icon: QrCode },
-  { id: 'marketplace', label: 'Hadiah', icon: Gift },
-];
-
 export function Navigation({ activeTab, onTabChange }: NavigationProps) {
+  const navItems = [
+    { id: 'dashboard', label: 'Beranda', icon: Home },
+    { id: 'missions', label: 'Misi', icon: Target },
+    { id: 'challenges', label: 'Battle', icon: Swords },
+    { id: 'leaderboard', label: 'Ranking', icon: Trophy },
+    { id: 'scanner', label: 'Foto', icon: Camera },
+    { id: 'marketplace', label: 'Hadiah', icon: Gift },
+  ];
   return (
     <>
       {/* Desktop Sidebar */}
@@ -103,6 +104,31 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
 export function Header() {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const checkAdmin = async () => {
+      if (!user) { setIsAdmin(false); return; }
+      const { data } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user.id)
+        .eq('role', 'admin')
+        .maybeSingle();
+      setIsAdmin(!!data);
+    };
+    checkAdmin();
+  }, [user]);
+
+  // Quick admin setup access (for development/first setup)
+  const handleQuickAdminAccess = () => {
+    if (user?.email?.includes('admin') || user?.email?.includes('test')) {
+      navigate('/admin-setup');
+    } else {
+      navigate('/admin-setup');
+    }
+  };
 
   return (
     <motion.header
@@ -122,31 +148,52 @@ export function Header() {
             </motion.div>
             <div>
               <h1 className="text-xl font-bold font-display gradient-text">EcoQuest</h1>
-              <p className="text-xs text-muted-foreground">Gamifikasi Peduli Lingkungan</p>
             </div>
           </div>
 
           <div className="flex items-center gap-2">
             <ThemeToggle />
             {user ? (
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/profile')}
-                className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
-              >
-                <Avatar className="w-8 h-8">
-                  {user.user_metadata?.avatar_url ? (
-                    <AvatarImage src={user.user_metadata.avatar_url} />
-                  ) : null}
-                  <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                    {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase() || '?'}
-                  </AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium hidden sm:inline">
-                  {user.user_metadata?.full_name || user.email?.split('@')[0]}
-                </span>
-              </motion.button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                    className="flex items-center gap-2 px-3 py-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
+                  >
+                    <Avatar className="w-8 h-8">
+                      {user.user_metadata?.avatar_url ? (
+                        <AvatarImage src={user.user_metadata.avatar_url} />
+                      ) : null}
+                      <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
+                        {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase() || '?'}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="text-sm font-medium hidden sm:inline">
+                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                    </span>
+                  </motion.button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => navigate('/profile')}>
+                    <UserCircle className="w-4 h-4 mr-2" />
+                    Profil
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={handleQuickAdminAccess}>
+                    <Settings className="w-4 h-4 mr-2" />
+                    Admin Setup
+                  </DropdownMenuItem>
+                  {isAdmin && (
+                    <>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => navigate('/admin')}>
+                        <Settings className="w-4 h-4 mr-2" />
+                        Admin Dashboard
+                      </DropdownMenuItem>
+                    </>
+                  )}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : (
               <Button variant="glow" size="sm" onClick={() => navigate('/auth')}>
                 <LogIn className="w-4 h-4 mr-2" />

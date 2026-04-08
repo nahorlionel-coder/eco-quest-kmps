@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Zap, Recycle, Bike, Salad, Trophy, Flame, Loader2 } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +7,7 @@ import { Progress } from '@/components/ui/progress';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { currentUser, categoryStats } from '@/data/mockData';
+import { getXPProgress, BONUS_UNLOCK_LEVELS, getPlayerTitle } from '@/lib/xp';
 
 export function StatsOverview() {
   const { user } = useAuth();
@@ -33,12 +34,13 @@ export function StatsOverview() {
     points: profile.points,
     level: profile.level,
     streak: profile.streak,
-    avatar: '🧑‍💼',
+    avatar: '/src/assets/aset-eco.svg',
     rank: rank || 0,
   } : currentUser;
 
-  const nextLevelPoints = displayUser.level * 500;
-  const levelProgress = (displayUser.points % 500) / 5;
+  const xp = getXPProgress(displayUser.points);
+  const nextUnlock = BONUS_UNLOCK_LEVELS.find(l => l > xp.level);
+  const title = getPlayerTitle(xp.level);
 
   const categoryIcons = {
     energy: { icon: Zap, color: 'energy' as const },
@@ -54,12 +56,18 @@ export function StatsOverview() {
           <div className="absolute inset-0 bg-gradient-to-br from-primary/10 to-secondary/10" />
           <CardContent className="relative p-6">
             <div className="flex items-center gap-4">
-              <motion.div className="text-5xl" animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
-                {displayUser.avatar}
+              <motion.div animate={{ scale: [1, 1.1, 1] }} transition={{ duration: 2, repeat: Infinity }}>
+                {displayUser.avatar.startsWith('/') || displayUser.avatar.startsWith('http')
+                  ? <img src={displayUser.avatar} alt="avatar" className="w-32 h-32 rounded-full" />
+                  : <span className="text-5xl">{displayUser.avatar}</span>}
               </motion.div>
               <div className="flex-1">
                 <h2 className="text-2xl font-bold font-display">{displayUser.name}</h2>
                 <p className="text-muted-foreground">{displayUser.department}</p>
+                <div className="flex items-center gap-1 mt-1">
+                  <span className="text-sm">{title.emoji}</span>
+                  <span className="text-sm font-semibold text-primary">{title.title}</span>
+                </div>
               </div>
               <div className="text-right">
                 <Badge variant="points" className="text-lg px-4 py-2">
@@ -74,7 +82,7 @@ export function StatsOverview() {
                 <div className="text-sm text-muted-foreground">Total Poin</div>
               </div>
               <div className="text-center p-4 rounded-xl bg-muted/50">
-                <div className="text-3xl font-bold font-display text-secondary">Lv.{displayUser.level}</div>
+                <div className="text-3xl font-bold font-display text-secondary">Lv.{xp.level}</div>
                 <div className="text-sm text-muted-foreground">Level</div>
               </div>
               <div className="text-center p-4 rounded-xl bg-muted/50">
@@ -88,10 +96,15 @@ export function StatsOverview() {
 
             <div className="mt-6">
               <div className="flex justify-between text-sm mb-2">
-                <span className="text-muted-foreground">Level {displayUser.level}</span>
-                <span className="text-primary font-semibold">{displayUser.points % 500} / 500 XP</span>
+                <span className="text-muted-foreground">Level {xp.level}</span>
+                <span className="text-primary font-semibold">{xp.current} / {xp.required} XP</span>
               </div>
-              <Progress value={levelProgress} indicatorColor="gradient" className="h-3" />
+              <Progress value={xp.percent} indicatorColor="gradient" className="h-3" />
+              {nextUnlock && (
+                <p className="text-xs text-yellow-400 mt-2 text-right">
+                  🔓 Bonus mission unlocks at Lv.{nextUnlock}
+                </p>
+              )}
             </div>
           </CardContent>
         </Card>

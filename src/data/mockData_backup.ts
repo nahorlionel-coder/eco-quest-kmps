@@ -40,7 +40,6 @@ export interface LeaderboardEntry {
   name: string;
   avatar: string;
   department: string;
-  company?: string;
   points: number;
   rank: number;
   change: 'up' | 'down' | 'same';
@@ -113,20 +112,14 @@ export const rewards: Reward[] = [
 ];
 
 export const leaderboard: LeaderboardEntry[] = [
-  { id: '1', name: 'Siti Rahayu', avatar: '👩💻', department: 'Marketing', company: 'KG Media', points: 3200, rank: 1, change: 'same' },
-  { id: '2', name: 'Ahmad Wijaya', avatar: '👨💼', department: 'Finance', company: 'KG Media', points: 2890, rank: 2, change: 'up' },
-  { id: '3', name: 'Budi Santoso', avatar: '🧑💼', department: 'Engineering', company: 'KG Media', points: 2450, rank: 3, change: 'up' },
-  { id: '4', name: 'Maya Putri', avatar: '👩🔬', department: 'R&D', company: 'KG Media', points: 2340, rank: 4, change: 'down' },
-  { id: '5', name: 'Riko Pratama', avatar: '👨🎨', department: 'Design', company: 'Kontan', points: 2100, rank: 5, change: 'same' },
-  { id: '6', name: 'Dewi Lestari', avatar: '👩🏫', department: 'HR', company: 'KG Media', points: 1980, rank: 6, change: 'up' },
-  { id: '7', name: 'Andi Saputra', avatar: '👨💻', department: 'Engineering', company: 'KG Media', points: 1850, rank: 7, change: 'down' },
-  { id: '8', name: 'Lisa Anggraeni', avatar: '👩⚕️', department: 'Operations', company: 'KG Media', points: 1720, rank: 8, change: 'same' },
-  // Kompas TV Team
-  { id: '9', name: 'Indira Sari', avatar: '👩📺', department: 'News', company: 'Kompas TV', points: 2650, rank: 9, change: 'up' },
-  { id: '10', name: 'Bayu Nugroho', avatar: '👨📹', department: 'Production', company: 'Kompas TV', points: 2420, rank: 10, change: 'up' },
-  { id: '11', name: 'Citra Dewi', avatar: '👩🎬', department: 'Creative', company: 'Kompas TV', points: 2180, rank: 11, change: 'same' },
-  { id: '12', name: 'Dimas Pratama', avatar: '👨🎥', department: 'Technical', company: 'Kompas TV', points: 1950, rank: 12, change: 'up' },
-  { id: '13', name: 'Eka Putri', avatar: '👩🎙️', department: 'Broadcasting', company: 'Kompas TV', points: 1780, rank: 13, change: 'down' },
+  { id: '1', name: 'Siti Rahayu', avatar: '👩‍💻', department: 'Marketing', points: 3200, rank: 1, change: 'same' },
+  { id: '2', name: 'Ahmad Wijaya', avatar: '👨‍💼', department: 'Finance', points: 2890, rank: 2, change: 'up' },
+  { id: '3', name: 'Budi Santoso', avatar: '🧑‍💼', department: 'Engineering', points: 2450, rank: 3, change: 'up' },
+  { id: '4', name: 'Maya Putri', avatar: '👩‍🔬', department: 'R&D', points: 2340, rank: 4, change: 'down' },
+  { id: '5', name: 'Riko Pratama', avatar: '👨‍🎨', department: 'Design', points: 2100, rank: 5, change: 'same' },
+  { id: '6', name: 'Dewi Lestari', avatar: '👩‍🏫', department: 'HR', points: 1980, rank: 6, change: 'up' },
+  { id: '7', name: 'Andi Saputra', avatar: '👨‍💻', department: 'Engineering', points: 1850, rank: 7, change: 'down' },
+  { id: '8', name: 'Lisa Anggraeni', avatar: '👩‍⚕️', department: 'Operations', points: 1720, rank: 8, change: 'same' },
 ];
 
 export const departmentRanks: DepartmentRank[] = [
@@ -144,10 +137,3 @@ export const categoryStats = {
   commute: { points: 650, missions: 8 },
   food: { points: 330, missions: 11 },
 };
-
-// Battle Champions - Weekly Top Performers
-export const battleChampions = [
-  { id: '4', name: 'Maya Putri', avatar: '👩🔬', department: 'R&D', company: 'KG Media', points: 102, isLeading: true },
-  { id: '5', name: 'Riko Pratama', avatar: '👨🎨', department: 'Design', company: 'Kontan', points: 98, isLeading: false },
-  { id: '6', name: 'Dewi Lestari', avatar: '👩🏫', department: 'HR', company: 'KG Media', points: 95, isLeading: false },
-];
