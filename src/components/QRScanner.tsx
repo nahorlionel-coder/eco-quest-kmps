@@ -66,7 +66,7 @@ export function QRScanner() {
   }, [user]);
 
   // Get photo missions
-  const photoMissions = missions.filter(m => m.type === 'photo' && m.active);
+  const photoMissions = missions.filter(m => m.type === 'photo');
 
   const handlePhotoUpload = async (file: File) => {
     if (!selectedMission || !user) return;

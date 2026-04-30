@@ -16,6 +16,8 @@ interface LeaderboardEntry {
   department: string | null;
   points: number;
   rank: number;
+  company?: string;
+  change?: number;
 }
 
 const rankIcons = {
