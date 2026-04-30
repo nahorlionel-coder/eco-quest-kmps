@@ -17,7 +17,7 @@ interface LeaderboardEntry {
   points: number;
   rank: number;
   company?: string;
-  change?: number;
+  change?: 'up' | 'down' | 'same';
 }
 
 const rankIcons = {
