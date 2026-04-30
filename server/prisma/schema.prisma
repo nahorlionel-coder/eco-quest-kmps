@@ -1,0 +1,168 @@
+// EcoQuest — Prisma schema (port dari Supabase)
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum AppRole {
+  admin
+  moderator
+  user
+}
+
+model User {
+  id           String   @id @default(uuid()) @db.Uuid
+  email        String   @unique
+  passwordHash String?  @map("password_hash")
+  googleId     String?  @unique @map("google_id")
+  fullName     String?  @map("full_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  profile      Profile?
+  roles        UserRole[]
+  completions  MissionCompletion[]
+  redemptions  RewardRedemption[]
+  assignments  UserMissionAssignment[]
+
+  @@map("users")
+}
+
+model Profile {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @unique @map("user_id") @db.Uuid
+  displayName String?  @map("display_name")
+  department  String?
+  avatarUrl   String?  @map("avatar_url")
+  points      Int      @default(0)
+  level       Int      @default(1)
+  streak      Int      @default(0)
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("profiles")
+}
+
+model UserRole {
+  id     String  @id @default(uuid()) @db.Uuid
+  userId String  @map("user_id") @db.Uuid
+  role   AppRole
+
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, role])
+  @@map("user_roles")
+}
+
+model Mission {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  points       Int      @default(10)
+  category     String   @default("energy")
+  type         String   @default("check-in")
+  icon         String?  @default("🎯")
+  active       Boolean  @default(true)
+  isSponsored  Boolean  @default(false) @map("is_sponsored")
+  isBonus      Boolean  @default(false) @map("is_bonus")
+  unlockLevel  Int      @default(0) @map("unlock_level")
+  sponsorName  String?  @map("sponsor_name")
+  redirectUrl  String?  @map("redirect_url")
+  frequency    String   @default("weekly")
+  difficulty   String   @default("medium")
+  sortOrder    Int      @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  completions  MissionCompletion[]
+  assignments  UserMissionAssignment[]
+
+  @@map("missions")
+}
+
+model MissionCompletion {
+  id            String    @id @default(uuid()) @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  missionId     String    @map("mission_id") @db.Uuid
+  missionTitle  String?   @map("mission_title")
+  photoUrl      String?   @map("photo_url")
+  pointsEarned  Int       @default(0) @map("points_earned")
+  completionDate DateTime @default(now()) @map("completion_date") @db.Date
+  status        String    @default("pending")
+  aiResult      String?   @map("ai_result")
+  aiConfidence  Decimal?  @map("ai_confidence") @db.Decimal(5, 2)
+  reviewedAt    DateTime? @map("reviewed_at")
+  completedAt   DateTime  @default(now()) @map("completed_at")
+  weekStart     DateTime? @map("week_start") @db.Date
+  qrCode        String?   @map("qr_code")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@map("mission_completions")
+}
+
+model Reward {
+  id           String   @id @default(uuid()) @db.Uuid
+  title        String
+  description  String?
+  pointsCost   Int      @default(100) @map("points_cost")
+  image        String?  @default("🎁")
+  category     String   @default("Merchandise")
+  available    Boolean  @default(true)
+  isSponsored  Boolean  @default(false) @map("is_sponsored")
+  sponsorName  String?  @map("sponsor_name")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("rewards")
+}
+
+model RewardRedemption {
+  id           String   @id @default(uuid()) @db.Uuid
+  userId       String   @map("user_id") @db.Uuid
+  rewardId     String   @map("reward_id")
+  rewardTitle  String?  @map("reward_title")
+  pointsSpent  Int      @default(0) @map("points_spent")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("reward_redemptions")
+}
+
+model UserMissionAssignment {
+  id          String   @id @default(uuid()) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  missionId   String   @map("mission_id") @db.Uuid
+  periodStart DateTime @map("period_start") @db.Date
+  periodEnd   DateTime @map("period_end") @db.Date
+  isBonus     Boolean  @default(false) @map("is_bonus")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  mission Mission @relation(fields: [missionId], references: [id], onDelete: Cascade)
+
+  @@map("user_mission_assignments")
+}
+
+model DepartmentChallenge {
+  id                String   @id @default(uuid()) @db.Uuid
+  title             String
+  description       String?
+  teamA             String   @map("team_a")
+  teamB             String   @map("team_b")
+  teamAPoints       Int      @default(0) @map("team_a_points")
+  teamBPoints       Int      @default(0) @map("team_b_points")
+  targetPoints      Int      @default(1000) @map("target_points")
+  rewardDescription String?  @map("reward_description")
+  status            String   @default("active")
+  icon              String?  @default("⚔️")
+  startDate         DateTime @default(now()) @map("start_date")
+  endDate           DateTime @map("end_date")
+  createdAt         DateTime @default(now()) @map("created_at")
+
+  @@map("department_challenges")
+}
