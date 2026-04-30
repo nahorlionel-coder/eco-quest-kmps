@@ -10,51 +10,16 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.1"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
-      department_challenge_contributions: {
-        Row: {
-          challenge_id: string
-          contributed_at: string
-          department: string
-          id: string
-          points_contributed: number
-          user_id: string
-        }
-        Insert: {
-          challenge_id: string
-          contributed_at?: string
-          department: string
-          id?: string
-          points_contributed?: number
-          user_id: string
-        }
-        Update: {
-          challenge_id?: string
-          contributed_at?: string
-          department?: string
-          id?: string
-          points_contributed?: number
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "department_challenge_contributions_challenge_id_fkey"
-            columns: ["challenge_id"]
-            isOneToOne: false
-            referencedRelation: "department_challenges"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       department_challenges: {
         Row: {
           created_at: string
-          description: string
+          description: string | null
           end_date: string
-          icon: string
+          icon: string | null
           id: string
           reward_description: string | null
           start_date: string
@@ -68,9 +33,9 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          description: string
-          end_date: string
-          icon?: string
+          description?: string | null
+          end_date?: string
+          icon?: string | null
           id?: string
           reward_description?: string | null
           start_date?: string
@@ -84,9 +49,9 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          description?: string
+          description?: string | null
           end_date?: string
-          icon?: string
+          icon?: string | null
           id?: string
           reward_description?: string | null
           start_date?: string
@@ -108,13 +73,14 @@ export type Database = {
           completion_date: string
           id: string
           mission_id: string
+          mission_title: string | null
           photo_url: string | null
           points_earned: number
           qr_code: string | null
           reviewed_at: string | null
-          reviewed_by: string | null
           status: string
           user_id: string
+          week_start: string | null
         }
         Insert: {
           ai_confidence?: number | null
@@ -123,13 +89,14 @@ export type Database = {
           completion_date?: string
           id?: string
           mission_id: string
+          mission_title?: string | null
           photo_url?: string | null
           points_earned?: number
           qr_code?: string | null
           reviewed_at?: string | null
-          reviewed_by?: string | null
           status?: string
           user_id: string
+          week_start?: string | null
         }
         Update: {
           ai_confidence?: number | null
@@ -138,13 +105,14 @@ export type Database = {
           completion_date?: string
           id?: string
           mission_id?: string
+          mission_title?: string | null
           photo_url?: string | null
           points_earned?: number
           qr_code?: string | null
           reviewed_at?: string | null
-          reviewed_by?: string | null
           status?: string
           user_id?: string
+          week_start?: string | null
         }
         Relationships: [
           {
@@ -161,9 +129,12 @@ export type Database = {
           active: boolean
           category: string
           created_at: string
-          description: string
-          icon: string
+          description: string | null
+          difficulty: string
+          frequency: string
+          icon: string | null
           id: string
+          is_bonus: boolean
           is_sponsored: boolean
           points: number
           redirect_url: string | null
@@ -171,29 +142,37 @@ export type Database = {
           sponsor_name: string | null
           title: string
           type: string
+          unlock_level: number
         }
         Insert: {
           active?: boolean
-          category: string
+          category?: string
           created_at?: string
-          description: string
-          icon?: string
+          description?: string | null
+          difficulty?: string
+          frequency?: string
+          icon?: string | null
           id?: string
+          is_bonus?: boolean
           is_sponsored?: boolean
           points?: number
           redirect_url?: string | null
           sort_order?: number
           sponsor_name?: string | null
           title: string
-          type: string
+          type?: string
+          unlock_level?: number
         }
         Update: {
           active?: boolean
           category?: string
           created_at?: string
-          description?: string
-          icon?: string
+          description?: string | null
+          difficulty?: string
+          frequency?: string
+          icon?: string | null
           id?: string
+          is_bonus?: boolean
           is_sponsored?: boolean
           points?: number
           redirect_url?: string | null
@@ -201,6 +180,7 @@ export type Database = {
           sponsor_name?: string | null
           title?: string
           type?: string
+          unlock_level?: number
         }
         Relationships: []
       }
@@ -214,7 +194,6 @@ export type Database = {
           level: number
           points: number
           streak: number
-          updated_at: string
           user_id: string
         }
         Insert: {
@@ -226,7 +205,6 @@ export type Database = {
           level?: number
           points?: number
           streak?: number
-          updated_at?: string
           user_id: string
         }
         Update: {
@@ -238,34 +216,33 @@ export type Database = {
           level?: number
           points?: number
           streak?: number
-          updated_at?: string
           user_id?: string
         }
         Relationships: []
       }
       reward_redemptions: {
         Row: {
+          created_at: string
           id: string
           points_spent: number
-          redeemed_at: string
           reward_id: string
-          reward_title: string
+          reward_title: string | null
           user_id: string
         }
         Insert: {
+          created_at?: string
           id?: string
           points_spent?: number
-          redeemed_at?: string
           reward_id: string
-          reward_title: string
+          reward_title?: string | null
           user_id: string
         }
         Update: {
+          created_at?: string
           id?: string
           points_spent?: number
-          redeemed_at?: string
           reward_id?: string
-          reward_title?: string
+          reward_title?: string | null
           user_id?: string
         }
         Relationships: []
@@ -275,9 +252,9 @@ export type Database = {
           available: boolean
           category: string
           created_at: string
-          description: string
+          description: string | null
           id: string
-          image: string
+          image: string | null
           is_sponsored: boolean
           points_cost: number
           sponsor_name: string | null
@@ -287,9 +264,9 @@ export type Database = {
           available?: boolean
           category?: string
           created_at?: string
-          description?: string
+          description?: string | null
           id?: string
-          image?: string
+          image?: string | null
           is_sponsored?: boolean
           points_cost?: number
           sponsor_name?: string | null
@@ -299,13 +276,43 @@ export type Database = {
           available?: boolean
           category?: string
           created_at?: string
-          description?: string
+          description?: string | null
           id?: string
-          image?: string
+          image?: string | null
           is_sponsored?: boolean
           points_cost?: number
           sponsor_name?: string | null
           title?: string
+        }
+        Relationships: []
+      }
+      user_mission_assignments: {
+        Row: {
+          created_at: string
+          id: string
+          is_bonus: boolean
+          mission_id: string
+          period_end: string
+          period_start: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_bonus?: boolean
+          mission_id: string
+          period_end: string
+          period_start: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_bonus?: boolean
+          mission_id?: string
+          period_end?: string
+          period_start?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -339,7 +346,14 @@ export type Database = {
         }
         Returns: boolean
       }
-      no_admin_exists: { Args: never; Returns: boolean }
+      redeem_reward: {
+        Args: {
+          _points_cost: number
+          _reward_id: string
+          _reward_title: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
