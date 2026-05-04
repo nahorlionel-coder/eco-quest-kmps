@@ -5,7 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { rewards, type Reward } from '@/data/mockData';
-import { supabase } from '@/integrations/supabase/client';
+import { rewardsApi, profilesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -203,16 +203,8 @@ export function Marketplace() {
   const [showSuccess, setShowSuccess] = useState<Reward | null>(null);
 
   useEffect(() => {
-    const fetchPoints = async () => {
-      if (!user) return;
-      const { data } = await supabase
-        .from('profiles')
-        .select('points')
-        .eq('user_id', user.id)
-        .single();
-      if (data) setUserPoints(data.points);
-    };
-    fetchPoints();
+    if (!user) return;
+    profilesApi.me().then(p => setUserPoints(p.points)).catch(() => {});
   }, [user]);
 
   const handleRedeem = async (id: string) => {
@@ -223,24 +215,12 @@ export function Marketplace() {
       return;
     }
 
-    // Deduct points in DB
-    const { error } = await supabase
-      .from('profiles')
-      .update({ points: userPoints - reward.pointsCost })
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast.error('Gagal menukar hadiah');
+    try {
+      await rewardsApi.redeem(reward.id, reward.title, reward.pointsCost);
+    } catch (e: any) {
+      toast.error(e.message || 'Gagal menukar hadiah');
       return;
     }
-
-    // Record redemption history
-    await supabase.from('reward_redemptions').insert({
-      user_id: user.id,
-      reward_id: reward.id,
-      reward_title: reward.title,
-      points_spent: reward.pointsCost,
-    });
 
     setUserPoints(prev => prev - reward.pointsCost);
     setRedeemedItems(prev => [...prev, id]);

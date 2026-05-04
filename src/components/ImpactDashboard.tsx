@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, AreaChart, Area, PieChart, Pie, Cell } from 'recharts';
-import { supabase } from '@/integrations/supabase/client';
+import { profilesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 
 // Conversion factors per mission point
@@ -45,11 +45,7 @@ export function ImpactDashboard() {
 
   useEffect(() => {
     if (!user) return;
-    const fetchProfile = async () => {
-      const { data } = await supabase.from('profiles').select('points').eq('user_id', user.id).single();
-      if (data) setTotalPoints(data.points);
-    };
-    fetchProfile();
+    profilesApi.me().then(data => setTotalPoints(data.points)).catch(() => {});
   }, [user]);
 
   // Calculate real impact from points

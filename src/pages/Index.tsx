@@ -2,16 +2,13 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Navigation, Header } from '@/components/Navigation';
 import { StatsOverview } from '@/components/StatsOverview';
-import { DailyMissions } from '@/components/DailyMissions';
-import MissionBoard from '@/components/MissionBoard';
+import { WeeklyMissions } from '@/components/WeeklyMissions';
 import { Leaderboard } from '@/components/Leaderboard';
-import { QRScanner } from '@/components/QRScanner';
 import { Marketplace } from '@/components/Marketplace';
 import { DepartmentChallenges } from '@/components/DepartmentChallenges';
 import { ImpactDashboard } from '@/components/ImpactDashboard';
 import { CarbonCalculator } from '@/components/CarbonCalculator';
 import { OnboardingGuide, useOnboarding } from '@/components/OnboardingGuide';
-import { FloatingMissionIcon } from '@/components/FloatingMissionIcon';
 import ecoPattern from '@/assets/eco-pattern.png';
 
 const pageVariants = {
@@ -29,7 +26,7 @@ const Index = () => {
       case 'dashboard':
         return <StatsOverview />;
       case 'missions':
-        return <DailyMissions />;
+        return <WeeklyMissions />;
       case 'challenges':
         return <DepartmentChallenges />;
       case 'impact':
@@ -38,8 +35,6 @@ const Index = () => {
         return <CarbonCalculator />;
       case 'leaderboard':
         return <Leaderboard />;
-      case 'scanner':
-        return <QRScanner />;
       case 'marketplace':
         return <Marketplace />;
       default:
@@ -93,7 +88,6 @@ const Index = () => {
         </main>
       </div>
 
-      {activeTab !== 'missions' && <FloatingMissionIcon />}
     </div>
   );
 };

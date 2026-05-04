@@ -4,9 +4,8 @@ import { Zap, Recycle, Bike, Salad, Trophy, Flame, Loader2 } from 'lucide-react'
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { supabase } from '@/integrations/supabase/client';
+import { profilesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { currentUser, categoryStats } from '@/data/mockData';
 import { getXPProgress, BONUS_UNLOCK_LEVELS, getPlayerTitle } from '@/lib/xp';
 
 export function StatsOverview() {
@@ -17,13 +16,21 @@ export function StatsOverview() {
   useEffect(() => {
     if (!user) return;
     const fetch = async () => {
-      const { data } = await supabase.from('profiles').select('*').eq('user_id', user.id).single();
-      if (data) {
-        setProfile(data);
-        // Get rank
-        const { count } = await supabase.from('profiles').select('*', { count: 'exact', head: true }).gt('points', data.points);
-        setRank((count || 0) + 1);
-      }
+      try {
+        const data = await profilesApi.me();
+        setProfile({
+          points: data.points,
+          level: data.level,
+          streak: data.streak,
+          display_name: data.displayName ?? null,
+          department: data.department ?? null,
+          avatar_url: data.avatarUrl ?? null,
+        });
+        const all = await profilesApi.list();
+        const sorted = [...all].sort((a, b) => b.points - a.points);
+        const idx = sorted.findIndex((p: any) => p.userId === data.userId);
+        setRank(idx + 1);
+      } catch {}
     };
     fetch();
   }, [user]);
@@ -36,7 +43,15 @@ export function StatsOverview() {
     streak: profile.streak,
     avatar: '/src/assets/aset-eco.svg',
     rank: rank || 0,
-  } : currentUser;
+  } : {
+    name: 'EcoWarrior',
+    department: '-',
+    points: 0,
+    level: 1,
+    streak: 0,
+    avatar: '/src/assets/aset-eco.svg',
+    rank: 0,
+  };
 
   const xp = getXPProgress(displayUser.points);
   const nextUnlock = BONUS_UNLOCK_LEVELS.find(l => l > xp.level);
@@ -111,30 +126,9 @@ export function StatsOverview() {
       </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.1 }} className="grid grid-cols-2 gap-4">
-        {Object.entries(categoryStats).map(([key, stat], index) => {
-          const category = categoryIcons[key as keyof typeof categoryIcons];
-          const Icon = category.icon;
-          return (
-            <motion.div key={key} initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.3, delay: 0.1 + index * 0.05 }}
-            >
-              <Card variant="interactive" className="h-full">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className={`p-2 rounded-xl bg-${category.color}/20`}>
-                      <Icon className={`w-5 h-5 text-${category.color}`} />
-                    </div>
-                    <span className="font-semibold capitalize font-display">{key}</span>
-                  </div>
-                  <div className="text-2xl font-bold font-display">
-                    {stat.points}<span className="text-sm font-normal text-muted-foreground ml-1">pts</span>
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">{stat.missions} misi selesai</div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          );
-        })}
+        <div className="col-span-2 text-center text-sm text-muted-foreground py-4">
+          {!user ? 'Login untuk melihat statistik kategori' : 'Selesaikan misi untuk melihat statistik per kategori'}
+        </div>
       </motion.div>
     </div>
   );

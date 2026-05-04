@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { useMissions } from '@/hooks/useMissions';
-import { supabase } from '@/integrations/supabase/client';
+import { missionsApi, uploadApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { useNavigate } from 'react-router-dom';
 
@@ -35,34 +35,26 @@ export function QRScanner() {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // Fetch user submissions
   useEffect(() => {
-    const fetchSubmissions = async () => {
-      if (!user) return;
-      setLoading(true);
-      const { data } = await supabase
-        .from('mission_completions')
-        .select('*')
-        .eq('user_id', user.id)
-        .not('photo_url', 'is', null)
-        .order('completed_at', { ascending: false })
-        .limit(10);
-      
-      if (data) {
-        const enriched = data.map(d => ({
-          id: d.id,
-          mission_title: d.mission_title || 'Unknown Mission',
-          photo_url: d.photo_url,
-          status: (d as any).status || 'pending',
-          points_earned: d.points_earned,
-          completed_at: d.completed_at,
-          ai_result: (d as any).ai_result,
-        }));
-        setSubmissions(enriched);
-      }
-      setLoading(false);
-    };
-    fetchSubmissions();
+    if (!user) return;
+    setLoading(true);
+    missionsApi.myCompletions()
+      .then(data => setSubmissions(
+        data
+          .filter((d: any) => d.photoUrl)
+          .slice(0, 10)
+          .map((d: any) => ({
+            id: d.id,
+            mission_title: d.mission?.title ?? 'Unknown Mission',
+            photo_url: d.photoUrl,
+            status: d.status ?? 'pending',
+            points_earned: d.pointsEarned,
+            completed_at: d.completedAt,
+            ai_result: d.aiResult,
+          }))
+      ))
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, [user]);
 
   // Get photo missions
@@ -70,62 +62,31 @@ export function QRScanner() {
 
   const handlePhotoUpload = async (file: File) => {
     if (!selectedMission || !user) return;
-    
     setUploading(true);
     try {
-      // Upload to Supabase Storage
-      const fileName = `${user.id}/${selectedMission.id}/${Date.now()}.jpg`;
-      const { data: uploadData, error: uploadError } = await supabase.storage
-        .from('mission-photos')
-        .upload(fileName, file);
-
-      if (uploadError) throw uploadError;
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('mission-photos')
-        .getPublicUrl(fileName);
-
-      // Save completion record
-      const { error: insertError } = await supabase
-        .from('mission_completions')
-        .insert({
-          user_id: user.id,
-          mission_id: selectedMission.id,
-          mission_title: selectedMission.title,
-          photo_url: publicUrl,
-          points_earned: selectedMission.points,
-          completion_date: new Date().toISOString().split('T')[0],
-          status: 'pending'
-        });
-
-      if (insertError) throw insertError;
-
+      const { url: photoUrl } = await uploadApi.photo(file);
+      await missionsApi.complete({
+        missionId: selectedMission.id,
+        photoUrl,
+        pointsEarned: selectedMission.points,
+      });
       toast.success('Foto berhasil diupload! Menunggu verifikasi admin.');
       setSelectedMission(null);
-      
-      // Refresh submissions
-      const { data } = await supabase
-        .from('mission_completions')
-        .select('*')
-        .eq('user_id', user.id)
-        .not('photo_url', 'is', null)
-        .order('completed_at', { ascending: false })
-        .limit(10);
-      
-      if (data) {
-        const enriched = data.map(d => ({
-          id: d.id,
-          mission_title: d.mission_title || 'Unknown Mission',
-          photo_url: d.photo_url,
-          status: (d as any).status || 'pending',
-          points_earned: d.points_earned,
-          completed_at: d.completed_at,
-          ai_result: (d as any).ai_result,
-        }));
-        setSubmissions(enriched);
-      }
-      
+      const data = await missionsApi.myCompletions();
+      setSubmissions(
+        data
+          .filter((d: any) => d.photoUrl)
+          .slice(0, 10)
+          .map((d: any) => ({
+            id: d.id,
+            mission_title: d.mission?.title ?? 'Unknown Mission',
+            photo_url: d.photoUrl,
+            status: d.status ?? 'pending',
+            points_earned: d.pointsEarned,
+            completed_at: d.completedAt,
+            ai_result: d.aiResult,
+          }))
+      );
     } catch (error: any) {
       toast.error('Gagal upload foto: ' + error.message);
     }

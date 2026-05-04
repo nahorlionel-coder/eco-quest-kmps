@@ -1,56 +1,48 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from 'react';
+import { authApi, apiToken, type ApiUser } from '@/lib/api';
 
 interface AuthContextType {
-  user: User | null;
-  session: Session | null;
+  user: ApiUser | null;
   loading: boolean;
-  signOut: () => Promise<void>;
+  signOut: () => void;
+  refetch: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
-  session: null,
   loading: true,
-  signOut: async () => {},
+  signOut: () => {},
+  refetch: async () => {},
 });
 
 export const useAuth = () => useContext(AuthContext);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
+  const [user, setUser] = useState<ApiUser | null>(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Set up auth state listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (_event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+  const fetchUser = useCallback(async () => {
+    if (!apiToken.get()) { setUser(null); setLoading(false); return; }
+    try {
+      const { user } = await authApi.me();
+      setUser(user);
+    } catch {
+      apiToken.clear();
+      setUser(null);
+    } finally {
       setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    }
   }, []);
 
-  const signOut = async () => {
-    await supabase.auth.signOut();
+  useEffect(() => { fetchUser(); }, []);
+
+  const signOut = () => {
+    authApi.logout();
     setUser(null);
-    setSession(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signOut }}>
+    <AuthContext.Provider value={{ user, loading, signOut, refetch: fetchUser }}>
       {children}
     </AuthContext.Provider>
   );

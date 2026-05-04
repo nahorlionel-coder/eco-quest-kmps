@@ -1,14 +1,14 @@
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Target, Trophy, Camera, Gift, Menu, X, Leaf, UserCircle, LogIn, Swords, Settings } from 'lucide-react';
+import { Home, Target, Trophy, Gift, Leaf, UserCircle, LogIn, Swords, Settings } from 'lucide-react';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { cn } from '@/lib/utils';
+import { rolesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
-import { supabase } from '@/integrations/supabase/client';
 
 interface NavigationProps {
   activeTab: string;
@@ -21,7 +21,6 @@ export function Navigation({ activeTab, onTabChange }: NavigationProps) {
     { id: 'missions', label: 'Misi', icon: Target },
     { id: 'challenges', label: 'Battle', icon: Swords },
     { id: 'leaderboard', label: 'Ranking', icon: Trophy },
-    { id: 'scanner', label: 'Foto', icon: Camera },
     { id: 'marketplace', label: 'Hadiah', icon: Gift },
   ];
   return (
@@ -110,13 +109,10 @@ export function Header() {
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) { setIsAdmin(false); return; }
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!data);
+      try {
+        const roles = await rolesApi.myRoles();
+        setIsAdmin(roles.some((r: any) => r.role === 'admin'));
+      } catch { setIsAdmin(false); }
     };
     checkAdmin();
   }, [user]);
@@ -162,15 +158,15 @@ export function Header() {
                     className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl bg-muted/50 hover:bg-muted transition-colors"
                   >
                     <Avatar className="w-6 h-6 sm:w-8 sm:h-8">
-                      {user.user_metadata?.avatar_url ? (
-                        <AvatarImage src={user.user_metadata.avatar_url} />
+                      {user.profile?.avatarUrl ? (
+                        <AvatarImage src={user.profile.avatarUrl} />
                       ) : null}
                       <AvatarFallback className="bg-primary/20 text-primary text-xs font-bold">
-                        {(user.user_metadata?.full_name || user.email)?.[0]?.toUpperCase() || '?'}
+                        {(user.fullName || user.email)?.[0]?.toUpperCase() || '?'}
                       </AvatarFallback>
                     </Avatar>
                     <span className="text-xs sm:text-sm font-medium hidden sm:inline">
-                      {user.user_metadata?.full_name || user.email?.split('@')[0]}
+                      {user.fullName || user.email?.split('@')[0]}
                     </span>
                   </motion.button>
                 </DropdownMenuTrigger>

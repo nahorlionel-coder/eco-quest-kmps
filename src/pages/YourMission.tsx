@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion';
 import { ArrowLeft, Clock, Trophy, Zap, Calendar } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { DailyMissions } from '@/components/DailyMissions';
-import { dailyMissions, weeklySchedule } from '@/data/mockData';
+import MissionBoard from '@/components/MissionBoard';
+import { useMissions } from '@/hooks/useMissions';
+import { useAuth } from '@/contexts/AuthContext';
 import ecoPattern from '@/assets/eco-pattern.png';
 
 function getWeekOfMonth(): number {
@@ -40,12 +41,11 @@ function getPeriodLabel(): string {
 
 export default function YourMission() {
   const navigate = useNavigate();
-  
+  const { user } = useAuth();
+  const { missions } = useMissions();
   const weekNum = getWeekOfMonth();
-  const scheduledIds = weeklySchedule[weekNum];
-  const weekMissions = dailyMissions.filter(m => scheduledIds.includes(m.id));
-  const completedCount = weekMissions.filter(m => m.completed).length;
-  const totalMissions = weekMissions.length;
+  const completedCount = missions.filter(m => m.completed).length;
+  const totalMissions = missions.length;
   const hoursLeft = getHoursLeft();
   const period = getPeriodLabel();
   const progressPercentage = totalMissions > 0 ? (completedCount / totalMissions) * 100 : 0;
@@ -201,7 +201,7 @@ export default function YourMission() {
         className="container mx-auto px-4 pb-8"
       >
         <div className="bg-white/5 backdrop-blur-lg rounded-2xl p-4 sm:p-6 border border-white/10">
-          <DailyMissions />
+          <MissionBoard />
         </div>
       </motion.div>
 

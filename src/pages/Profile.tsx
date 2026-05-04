@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { profilesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { getXPProgress, getPlayerTitle } from '@/lib/xp';
@@ -41,34 +41,30 @@ const Profile = () => {
   }, [user]);
 
   const fetchProfile = async () => {
-    if (!user) return;
-    const { data, error } = await supabase
-      .from('profiles')
-      .select('*')
-      .eq('user_id', user.id)
-      .single();
-
-    if (data) {
-      setProfile(data);
-      setDisplayName(data.display_name || '');
+    try {
+      const data = await profilesApi.me();
+      setProfile({
+        display_name: data.displayName ?? null,
+        avatar_url: data.avatarUrl ?? null,
+        department: data.department ?? null,
+        points: data.points,
+        level: data.level,
+        streak: data.streak,
+      });
+      setDisplayName(data.displayName || '');
       setDepartment(data.department || '');
-    }
+    } catch {}
     setLoading(false);
   };
 
   const handleSave = async () => {
-    if (!user) return;
-    const { error } = await supabase
-      .from('profiles')
-      .update({ display_name: displayName, department })
-      .eq('user_id', user.id);
-
-    if (error) {
-      toast.error('Gagal menyimpan profil');
-    } else {
+    try {
+      await profilesApi.update({ displayName: displayName, department } as any);
       toast.success('Profil berhasil diperbarui! ✨');
       setEditing(false);
       fetchProfile();
+    } catch {
+      toast.error('Gagal menyimpan profil');
     }
   };
 
@@ -258,10 +254,10 @@ const Profile = () => {
                   </p>
                 </div>
                 <Button 
-                  onClick={() => navigate('/your-mission')}
+                  onClick={() => navigate('/')}
                   className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-3 rounded-full font-semibold shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  Go to Your Mission
+                  Lihat Misi
                   <ArrowRight className="w-4 h-4 ml-2" />
                 </Button>
               </div>

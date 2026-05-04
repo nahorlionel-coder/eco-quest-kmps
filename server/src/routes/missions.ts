@@ -5,15 +5,28 @@ import { AuthedRequest, requireAuth, requireAdmin } from "../middleware/auth.js"
 
 const router = Router();
 
-// List all active missions (any logged-in user)
+// Helper: minggu ke berapa dalam bulan ini (1-4)
+function getWeekOfMonth(): number {
+  const now = new Date();
+  const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+  const adjustedFirstDay = firstDay.getDay() === 0 ? 6 : firstDay.getDay() - 1;
+  const weekNumber = Math.ceil((now.getDate() + adjustedFirstDay) / 7);
+  return Math.min(weekNumber, 4);
+}
+
+// List missions filtered by current week slot
 router.get("/", requireAuth, async (_req, res) => {
+  const currentWeek = getWeekOfMonth();
+
   const missions = await prisma.mission.findMany({
-    where: { active: true },
-    orderBy: [{ sortOrder: "asc" }, { createdAt: "desc" }],
+    where: {
+      active: true,
+      weekSlots: { has: currentWeek },
+    },
+    orderBy: [{ difficulty: "asc" }],
   });
   res.json(missions);
 });
-
 // My completions
 router.get("/completions/me", requireAuth, async (req: AuthedRequest, res) => {
   const list = await prisma.missionCompletion.findMany({
@@ -64,7 +77,7 @@ router.post("/completions", requireAuth, async (req: AuthedRequest, res) => {
 // --- Admin endpoints ---
 
 router.get("/admin/all", requireAdmin, async (_req, res) => {
-  const list = await prisma.mission.findMany({ orderBy: { sortOrder: "asc" } });
+  const list = await prisma.mission.findMany({ orderBy: { difficulty: "asc" } });
   res.json(list);
 });
 
@@ -126,7 +139,6 @@ const UpsertMissionSchema = z.object({
   redirectUrl: z.string().optional().nullable(),
   frequency: z.string().default("weekly"),
   difficulty: z.string().default("medium"),
-  sortOrder: z.number().int().default(0),
 });
 
 router.post("/admin", requireAdmin, async (req, res) => {

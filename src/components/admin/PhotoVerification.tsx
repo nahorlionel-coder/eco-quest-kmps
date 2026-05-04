@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { missionsApi } from '@/lib/api';
 import { toast } from 'sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -33,41 +33,24 @@ export function PhotoVerification({ onRefresh }: { onRefresh?: () => void }) {
 
   const fetchCompletions = async () => {
     setLoading(true);
-    let query = supabase
-      .from('mission_completions')
-      .select('*')
-      .not('photo_url', 'is', null)
-      .order('completed_at', { ascending: false });
-
-    if (filter !== 'all') {
-      query = query.eq('status', filter);
-    }
-
-    const { data } = await query;
-    if (!data) { setLoading(false); return; }
-
-    // Fetch mission titles and user names
-    const missionIds = [...new Set(data.map(d => d.mission_id))];
-    const userIds = [...new Set(data.map(d => d.user_id))];
-
-    const [missionsRes, profilesRes] = await Promise.all([
-      supabase.from('missions').select('id, title').in('id', missionIds),
-      supabase.from('profiles').select('user_id, display_name').in('user_id', userIds),
-    ]);
-
-    const missionMap = new Map((missionsRes.data || []).map(m => [m.id, m.title]));
-    const profileMap = new Map((profilesRes.data || []).map(p => [p.user_id, p.display_name]));
-
-    const enriched: Completion[] = data.map(d => ({
-      ...d,
-      status: (d as any).status || 'pending',
-      ai_result: (d as any).ai_result || null,
-      ai_confidence: (d as any).ai_confidence || null,
-      mission_title: missionMap.get(d.mission_id) || 'Unknown',
-      user_name: profileMap.get(d.user_id) || 'Unknown',
-    }));
-
-    setCompletions(enriched);
+    try {
+      const data = await missionsApi.adminCompletions();
+      const filtered = filter === 'all' ? data : data.filter((d: any) => d.status === filter);
+      setCompletions(filtered.map((d: any) => ({
+        id: d.id,
+        user_id: d.userId,
+        mission_id: d.missionId,
+        photo_url: d.photoUrl ?? null,
+        points_earned: d.pointsEarned,
+        status: d.status,
+        ai_result: d.aiResult ?? null,
+        ai_confidence: d.aiConfidence ?? null,
+        completed_at: d.completedAt,
+        completion_date: d.completionDate ?? '',
+        mission_title: d.mission?.title ?? 'Unknown',
+        user_name: d.user?.profile?.displayName ?? d.user?.email ?? 'Unknown',
+      })));
+    } catch {}
     setLoading(false);
   };
 
@@ -75,19 +58,15 @@ export function PhotoVerification({ onRefresh }: { onRefresh?: () => void }) {
 
   const handleAction = async (id: string, status: 'approved' | 'rejected') => {
     setActionLoading(id);
-    const { error } = await supabase
-      .from('mission_completions')
-      .update({ status, reviewed_at: new Date().toISOString() } as any)
-      .eq('id', id);
-
-    setActionLoading(null);
-    if (error) {
-      toast.error('Gagal memperbarui: ' + error.message);
-      return;
+    try {
+      await missionsApi.review(id, status);
+      toast.success(status === 'approved' ? '✅ Foto disetujui, poin ditambahkan!' : '❌ Foto ditolak');
+      fetchCompletions();
+      onRefresh?.();
+    } catch (e: any) {
+      toast.error('Gagal memperbarui: ' + e.message);
     }
-    toast.success(status === 'approved' ? '✅ Foto disetujui, poin ditambahkan!' : '❌ Foto ditolak');
-    fetchCompletions();
-    onRefresh?.();
+    setActionLoading(null);
   };
 
   const statusBadge = (status: string, aiConfidence?: number | null) => {

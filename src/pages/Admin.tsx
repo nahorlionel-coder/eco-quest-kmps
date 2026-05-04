@@ -12,7 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { supabase } from '@/integrations/supabase/client';
+import { missionsApi, rewardsApi, profilesApi, rolesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import {
@@ -52,29 +52,23 @@ function MissionForm({ mission, onSave, onClose }: { mission?: Mission; onSave: 
     type: mission?.type || 'check-in', icon: mission?.icon || '🎯',
     active: mission?.active ?? true, is_sponsored: mission?.is_sponsored || false,
     sponsor_name: mission?.sponsor_name || '', redirect_url: mission?.redirect_url || '',
-    sort_order: mission?.sort_order || 0,
   });
   const [saving, setSaving] = useState(false);
 
   const handleSubmit = async () => {
     if (!form.title.trim()) { toast.error('Judul wajib diisi'); return; }
     setSaving(true);
-    const payload = { ...form, sponsor_name: form.sponsor_name || null, redirect_url: form.redirect_url || null };
-    const { error } = mission
-      ? await supabase.from('missions').update(payload).eq('id', mission.id)
-      : await supabase.from('missions').insert(payload);
+    const payload = { ...form, sponsorName: form.sponsor_name || null, redirectUrl: form.redirect_url || null };
+    try {
+      mission ? await missionsApi.update(mission.id, payload) : await missionsApi.create(payload);
+      toast.success(mission ? 'Misi diperbarui' : 'Misi ditambahkan');
+      onSave(); onClose();
+    } catch (e: any) { toast.error('Gagal menyimpan: ' + e.message); }
     setSaving(false);
-    if (error) { toast.error('Gagal menyimpan: ' + error.message); return; }
-    toast.success(mission ? 'Misi diperbarui' : 'Misi ditambahkan');
-    onSave(); onClose();
   };
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-2 gap-4">
-        <div><Label>Icon</Label><Input value={form.icon} onChange={e => setForm(f => ({ ...f, icon: e.target.value }))} /></div>
-        <div><Label>Sort Order</Label><Input type="number" value={form.sort_order} onChange={e => setForm(f => ({ ...f, sort_order: +e.target.value }))} /></div>
-      </div>
       <div><Label>Judul</Label><Input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} /></div>
       <div><Label>Deskripsi</Label><Textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} /></div>
       <div className="grid grid-cols-3 gap-4">
@@ -135,14 +129,10 @@ function ChallengeForm({ challenge, onSave, onClose }: { challenge?: Challenge; 
   const handleSubmit = async () => {
     if (!form.title.trim() || !form.team_a.trim() || !form.team_b.trim()) { toast.error('Lengkapi data'); return; }
     setSaving(true);
-    const payload = { ...form, reward_description: form.reward_description || null, end_date: form.end_date || new Date(Date.now() + 7 * 86400000).toISOString() };
-    const { error } = challenge
-      ? await supabase.from('department_challenges').update(payload).eq('id', challenge.id)
-      : await supabase.from('department_challenges').insert(payload);
+    // Department challenges belum ada di API lokal, placeholder
+    toast.info('Fitur Battle belum tersedia di backend lokal');
     setSaving(false);
-    if (error) { toast.error('Gagal menyimpan: ' + error.message); return; }
-    toast.success(challenge ? 'Battle diperbarui' : 'Battle ditambahkan');
-    onSave(); onClose();
+    onClose();
   };
 
   return (
@@ -193,14 +183,13 @@ function RewardForm({ reward, onSave, onClose }: { reward?: Reward; onSave: () =
   const handleSubmit = async () => {
     if (!form.title.trim()) { toast.error('Judul wajib diisi'); return; }
     setSaving(true);
-    const payload = { ...form, sponsor_name: form.sponsor_name || null };
-    const { error } = reward
-      ? await supabase.from('rewards').update(payload).eq('id', reward.id)
-      : await supabase.from('rewards').insert(payload);
+    const payload = { ...form, sponsorName: form.sponsor_name || null };
+    try {
+      reward ? await rewardsApi.update(reward.id, payload) : await rewardsApi.create(payload);
+      toast.success(reward ? 'Hadiah diperbarui' : 'Hadiah ditambahkan');
+      onSave(); onClose();
+    } catch (e: any) { toast.error('Gagal menyimpan: ' + e.message); }
     setSaving(false);
-    if (error) { toast.error('Gagal menyimpan: ' + error.message); return; }
-    toast.success(reward ? 'Hadiah diperbarui' : 'Hadiah ditambahkan');
-    onSave(); onClose();
   };
 
   return (
@@ -247,11 +236,12 @@ function PointsEditor({ profile, onSave, onClose }: { profile: Profile; onSave: 
 
   const handleSubmit = async () => {
     setSaving(true);
-    const { error } = await supabase.from('profiles').update({ points, level, streak }).eq('id', profile.id);
+    try {
+      await profilesApi.update({ points, level, streak } as any);
+      toast.success('Data peserta diperbarui');
+      onSave(); onClose();
+    } catch (e: any) { toast.error('Gagal update: ' + e.message); }
     setSaving(false);
-    if (error) { toast.error('Gagal update: ' + error.message); return; }
-    toast.success('Data peserta diperbarui');
-    onSave(); onClose();
   };
 
   return (
@@ -295,33 +285,28 @@ export default function Admin() {
   const [editProfile, setEditProfile] = useState<Profile | undefined>();
   const [showProfileDialog, setShowProfileDialog] = useState(false);
 
-  // Check admin role
   useEffect(() => {
     const checkAdmin = async () => {
       if (!user) { setIsAdmin(false); return; }
-      const { data } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!data);
+      try {
+        const roles = await rolesApi.myRoles();
+        setIsAdmin(roles.some((r: any) => r.role === 'admin'));
+      } catch { setIsAdmin(false); }
     };
     if (!authLoading) checkAdmin();
   }, [user, authLoading]);
 
   const fetchAll = async () => {
     setLoading(true);
-    const [m, c, r, p] = await Promise.all([
-      supabase.from('missions').select('*').order('sort_order'),
-      supabase.from('department_challenges').select('*').order('created_at', { ascending: false }),
-      supabase.from('rewards').select('*').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('*').order('points', { ascending: false }),
+    const [m, r, p] = await Promise.all([
+      missionsApi.adminAll(),
+      rewardsApi.list(),
+      profilesApi.list(),
     ]);
-    if (m.data) setMissions(m.data);
-    if (c.data) setChallenges(c.data);
-    if (r.data) setRewards(r.data);
-    if (p.data) setProfiles(p.data);
+    setMissions(m.map((x: any) => ({ ...x, is_sponsored: x.isSponsored, sponsor_name: x.sponsorName, redirect_url: x.redirectUrl, sort_order: x.sortOrder })));
+    setChallenges([]);
+    setRewards(r.map((x: any) => ({ ...x, points_cost: x.pointsCost, is_sponsored: x.isSponsored, sponsor_name: x.sponsorName })));
+    setProfiles(p.map((x: any) => ({ ...x, user_id: x.userId, display_name: x.displayName, avatar_url: x.avatarUrl, created_at: x.createdAt ?? '' })));
     setLoading(false);
   };
 
@@ -346,18 +331,14 @@ export default function Admin() {
 
   const deleteMission = async (id: string) => {
     if (!confirm('Hapus misi ini?')) return;
-    await supabase.from('missions').delete().eq('id', id);
-    toast.success('Misi dihapus'); fetchAll();
+    try { await missionsApi.remove(id); toast.success('Misi dihapus'); fetchAll(); } catch (e: any) { toast.error(e.message); }
   };
   const deleteChallenge = async (id: string) => {
-    if (!confirm('Hapus battle ini?')) return;
-    await supabase.from('department_challenges').delete().eq('id', id);
-    toast.success('Battle dihapus'); fetchAll();
+    toast.info('Fitur Battle belum tersedia di backend lokal');
   };
   const deleteReward = async (id: string) => {
     if (!confirm('Hapus hadiah ini?')) return;
-    await supabase.from('rewards').delete().eq('id', id);
-    toast.success('Hadiah dihapus'); fetchAll();
+    try { await rewardsApi.remove(id); toast.success('Hadiah dihapus'); fetchAll(); } catch (e: any) { toast.error(e.message); }
   };
 
   return (

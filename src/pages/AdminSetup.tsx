@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { supabase } from '@/integrations/supabase/client';
+import { rolesApi } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 import { ShieldCheck, ArrowLeft, UserPlus, Crown } from 'lucide-react';
@@ -21,22 +21,12 @@ export default function AdminSetup() {
   useEffect(() => {
     const check = async () => {
       if (!user) return;
-      // Check if any admin exists using an edge-case: we query user_roles
-      const { data: roles } = await supabase
-        .from('user_roles')
-        .select('id')
-        .eq('role', 'admin')
-        .limit(1);
-      setHasAnyAdmin(!!roles && roles.length > 0);
-
-      // Check if current user is admin
-      const { data: myRole } = await supabase
-        .from('user_roles')
-        .select('role')
-        .eq('user_id', user.id)
-        .eq('role', 'admin')
-        .maybeSingle();
-      setIsAdmin(!!myRole);
+      try {
+        const { hasAnyAdmin } = await rolesApi.hasAnyAdmin();
+        setHasAnyAdmin(hasAnyAdmin);
+        const myRoles = await rolesApi.myRoles();
+        setIsAdmin(myRoles.some((r: any) => r.role === 'admin'));
+      } catch { setHasAnyAdmin(false); }
     };
     if (!authLoading) check();
   }, [user, authLoading]);
@@ -44,53 +34,31 @@ export default function AdminSetup() {
   const assignSelfAsAdmin = async () => {
     if (!user) return;
     setAssigning(true);
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: user.id, role: 'admin' });
-    setAssigning(false);
-    if (error) {
-      toast.error('Gagal: ' + error.message);
-      return;
+    try {
+      await rolesApi.bootstrapAdmin();
+      toast.success('Anda sekarang adalah Admin! 🎉');
+      setIsAdmin(true);
+      setHasAnyAdmin(true);
+    } catch (e: any) {
+      toast.error('Gagal: ' + e.message);
     }
-    toast.success('Anda sekarang adalah Admin! 🎉');
-    setIsAdmin(true);
-    setHasAnyAdmin(true);
+    setAssigning(false);
   };
 
   const assignByEmail = async () => {
-    if (!email.trim()) { toast.error('Masukkan email'); return; }
-    setAssigning(true);
-    // Look up profile by matching email in auth (we search profiles)
-    // Since we can't query auth.users, we use a workaround: search profiles
-    const { data: profiles } = await supabase
-      .from('profiles')
-      .select('user_id, display_name');
-
-    if (!profiles || profiles.length === 0) {
-      toast.error('Tidak ada user ditemukan');
-      setAssigning(false);
-      return;
-    }
-
-    // We need to find the user by checking auth - let's use the admin's knowledge
-    // For simplicity, we'll look for the email in profiles display_name or ask for user_id
     toast.error('Untuk assign admin via email, gunakan User ID. Lihat tab Peserta di CMS.');
-    setAssigning(false);
   };
 
   const assignByUserId = async (userId: string) => {
     if (!userId.trim()) { toast.error('Masukkan User ID'); return; }
     setAssigning(true);
-    const { error } = await supabase
-      .from('user_roles')
-      .insert({ user_id: userId, role: 'admin' });
-    setAssigning(false);
-    if (error) {
-      if (error.code === '23505') { toast.info('User sudah memiliki role admin'); return; }
-      toast.error('Gagal: ' + error.message);
-      return;
+    try {
+      await rolesApi.assign(userId, 'admin');
+      toast.success('Admin baru berhasil ditambahkan! 🎉');
+    } catch (e: any) {
+      toast.error('Gagal: ' + e.message);
     }
-    toast.success('Admin baru berhasil ditambahkan! 🎉');
+    setAssigning(false);
   };
 
   if (authLoading || hasAnyAdmin === null) {
